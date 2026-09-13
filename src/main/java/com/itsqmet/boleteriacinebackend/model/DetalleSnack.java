@@ -19,9 +19,9 @@ public class DetalleSnack {
     @JsonIgnoreProperties({"detallesBoleto", "detallesSnack"})
     private Compra compra;
 
-    @NotBlank(message = "El identificador del snack no puede estar vacío")
+    @NotNull(message = "El identificador del snack no puede estar vacío")
     @Column(nullable = false)
-    private String snackId;
+    private Long snackId;
 
     @NotBlank(message = "El nombre del snack no puede estar vacío")
     @Column(nullable = false)

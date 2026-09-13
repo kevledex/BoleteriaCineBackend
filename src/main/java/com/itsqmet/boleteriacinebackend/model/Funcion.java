@@ -18,9 +18,9 @@ public class Funcion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "El identificador de la película no puede estar vacío")
+    @NotNull(message = "El identificador de la película no puede estar vacío")
     @Column(nullable = false)
-    private String peliculaId;
+    private Long peliculaId;
 
     @NotBlank(message = "El título de la película no puede estar vacío")
     @Column(nullable = false)
