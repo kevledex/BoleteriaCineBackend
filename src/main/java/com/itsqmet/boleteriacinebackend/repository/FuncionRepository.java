@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface FuncionRepository extends JpaRepository<Funcion, Long> {
 
-    List<Funcion> findByPeliculaId(String peliculaId);
-    List<Funcion> findByPeliculaIdAndFecha(String peliculaId, LocalDate fecha);
+    List<Funcion> findByPeliculaId(Long peliculaId);
+    List<Funcion> findByPeliculaIdAndFecha(Long peliculaId, LocalDate fecha);
     List<Funcion> findBySalaId(Long salaId);
 }
