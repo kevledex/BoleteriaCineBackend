@@ -26,6 +26,7 @@ public class DetalleBoleto {
 
     @ManyToOne
     @JoinColumn(name = "asiento_id", nullable = false)
+    @JsonIgnoreProperties("sala")
     private Asiento asiento;
 
     @NotNull(message = "El precio del boleto no puede estar vacío")
