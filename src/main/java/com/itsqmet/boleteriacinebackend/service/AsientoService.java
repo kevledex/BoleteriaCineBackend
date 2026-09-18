@@ -1,0 +1,41 @@
+package com.itsqmet.boleteriacinebackend.service;
+
+import com.itsqmet.boleteriacinebackend.model.Asiento;
+import com.itsqmet.boleteriacinebackend.repository.AsientoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class AsientoService {
+
+    @Autowired
+    private AsientoRepository asientoRepository;
+
+    public List<Asiento> obtenerPorSala(Long salaId) {
+        return asientoRepository.findBySalaId(salaId);
+    }
+
+    public Optional<Asiento> buscarPorId(Long id) {
+        return asientoRepository.findById(id);
+    }
+
+    public Optional<Asiento> actualizar(Long id, Asiento asientoActualizado) {
+        return asientoRepository.findById(id).map(asiento -> {
+            asiento.setFila(asientoActualizado.getFila());
+            asiento.setNumero(asientoActualizado.getNumero());
+            asiento.setTipoAsiento(asientoActualizado.getTipoAsiento());
+            return asientoRepository.save(asiento);
+        });
+    }
+
+    public boolean eliminar(Long id) {
+        if (asientoRepository.existsById(id)) {
+            asientoRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+}
