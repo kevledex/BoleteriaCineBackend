@@ -31,7 +31,7 @@ public class Sala {
     private Integer columnas;
 
     @NotBlank(message = "El tipo de sala no puede estar vacío")
-    @Pattern(regexp = "STANDARD|3D|VIP|IMAX", message = "El tipo de sala debe ser STANDARD, 3D, VIP o IMAX")
+    @Pattern(regexp = "STANDARD|3D|4D|VIP|IMAX", message = "El tipo de sala debe ser STANDARD, 3D, 4D, VIP o IMAX")
     @Column(nullable = false)
     private String tipoSala;
 
