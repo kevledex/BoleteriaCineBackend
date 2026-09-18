@@ -40,7 +40,7 @@ public class Funcion {
     private LocalTime hora;
 
     @NotBlank(message = "El formato de la función no puede estar vacío")
-    @Pattern(regexp = "2D|3D", message = "El formato debe ser 2D o 3D")
+    @Pattern(regexp = "2D|3D|4D", message = "El formato debe ser 2D, 3D o 4D")
     @Column(nullable = false)
     private String formato;
 
