@@ -8,6 +8,7 @@ import java.util.List;
 public interface DetalleBoletoRepository extends JpaRepository<DetalleBoleto, Long> {
 
     List<DetalleBoleto> findByFuncionId(Long funcionId);
+    boolean existsByFuncionId(Long funcionId);
     List<DetalleBoleto> findByCompraId(Long compraId);
     boolean existsByFuncionIdAndAsientoId(Long funcionId, Long asientoId);
 }

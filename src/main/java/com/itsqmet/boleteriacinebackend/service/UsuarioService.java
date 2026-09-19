@@ -33,7 +33,7 @@ public class UsuarioService {
         }
 
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-        usuario.setRol(usuario.getRol() != null ? usuario.getRol() : "CLIENTE");
+        usuario.setRol("CLIENTE");
         usuario.setActivo(true);
         usuario.setFechaRegistro(LocalDateTime.now());
 
