@@ -34,7 +34,7 @@ public class FuncionController {
     private DetalleBoletoService detalleBoletoService;
 
     // Forma exacta que espera AsientosService del frontend: { id, estado, precio }[]
-    private record AsientoDisponibilidad(String id, String estado, Double precio) {
+    private record AsientoDisponibilidad(String id, Long asientoId, String estado, Double precio) {
     }
 
     @GetMapping
@@ -70,6 +70,7 @@ public class FuncionController {
                     List<AsientoDisponibilidad> mapa = asientosSala.stream()
                             .map(asiento -> new AsientoDisponibilidad(
                                     asiento.getFila() + asiento.getNumero(),
+                                    asiento.getId(),
                                     ocupados.contains(asiento.getId()) ? "OCUPADO" : "LIBRE",
                                     funcion.getPrecioBase()))
                             .collect(Collectors.toList());

@@ -2,6 +2,8 @@ package com.itsqmet.boleteriacinebackend.controller;
 
 import com.itsqmet.boleteriacinebackend.model.Compra;
 import com.itsqmet.boleteriacinebackend.service.CompraService;
+import org.springframework.security.core.Authentication;
+import org.springframework.dao.DataIntegrityViolationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,21 @@ public class CompraController {
 
     @Autowired
     private CompraService compraService;
+
+    @PostMapping("/registrar")
+    public ResponseEntity<?> registrar(@RequestBody CompraService.CompraSolicitud solicitud, Authentication auth) {
+        try {
+            Compra compra = compraService.registrarCompra(solicitud, auth.getName());
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "id", compra.getId(), "total", compra.getTotal(), "estado", compra.getEstado()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Uno de los asientos acaba de ser vendido"));
+        }
+    }
 
     @GetMapping
     public ResponseEntity<List<Compra>> obtenerTodo() {

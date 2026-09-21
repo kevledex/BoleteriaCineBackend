@@ -4,6 +4,16 @@ import com.itsqmet.boleteriacinebackend.model.Compra;
 import com.itsqmet.boleteriacinebackend.model.DetalleBoleto;
 import com.itsqmet.boleteriacinebackend.model.DetalleSnack;
 import com.itsqmet.boleteriacinebackend.model.Funcion;
+import com.itsqmet.boleteriacinebackend.model.Usuario;
+import com.itsqmet.boleteriacinebackend.model.Asiento;
+import com.itsqmet.boleteriacinebackend.repository.UsuarioRepository;
+import com.itsqmet.boleteriacinebackend.repository.AsientoRepository;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import com.itsqmet.boleteriacinebackend.repository.CompraRepository;
 import com.itsqmet.boleteriacinebackend.repository.DetalleBoletoRepository;
 import com.itsqmet.boleteriacinebackend.repository.FuncionRepository;
@@ -26,6 +36,85 @@ public class CompraService {
 
     @Autowired
     private DetalleBoletoRepository detalleBoletoRepository;
+
+    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private AsientoRepository asientoRepository;
+
+    public record SnackPedido(Long id, Integer cantidad) {}
+    public record CompraSolicitud(Long funcionId, List<Long> asientoIds, List<SnackPedido> snacks) {}
+    private record Producto(String nombre, double precio) {}
+    private static final Map<Long, Producto> CATALOGO = Map.ofEntries(
+        Map.entry(1L, new Producto("Combo 1", 13.0)),
+        Map.entry(2L, new Producto("Combo 2", 15.0)),
+        Map.entry(3L, new Producto("Combo 3", 23.0)),
+        Map.entry(4L, new Producto("Combo 4", 19.0)),
+        Map.entry(5L, new Producto("Bebida Pequeña", 3.5)),
+        Map.entry(6L, new Producto("Bebida Grande", 4.5)),
+        Map.entry(7L, new Producto("Café", 3.0)),
+        Map.entry(8L, new Producto("Agua Sin Gas", 2.5)),
+        Map.entry(9L, new Producto("Tic Tac Naranja", 2.0)),
+        Map.entry(10L, new Producto("Gomas Trolli Sour Octopus", 3.5)),
+        Map.entry(11L, new Producto("Hershey's Milk Chocolate", 3.0)),
+        Map.entry(12L, new Producto("M&M's Milk Chocolate", 3.0))
+    );
+
+    @Transactional
+    public Compra registrarCompra(CompraSolicitud solicitud, String correo) {
+        if (solicitud.funcionId() == null || solicitud.asientoIds() == null || solicitud.asientoIds().isEmpty())
+            throw new IllegalArgumentException("Selecciona al menos un asiento");
+        Usuario usuario = usuarioRepository.findByEmail(correo)
+            .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        Funcion funcion = funcionRepository.findWithLockById(solicitud.funcionId())
+            .orElseThrow(() -> new IllegalArgumentException("Función no encontrada"));
+        if (!LocalDateTime.of(funcion.getFecha(), funcion.getHora())
+                .isAfter(LocalDateTime.now(ZoneId.of("America/Guayaquil"))))
+            throw new IllegalArgumentException("Esta función ya comenzó");
+
+        Map<Long, Asiento> asientosSala = new java.util.HashMap<>();
+        for (Asiento asiento : asientoRepository.findBySalaId(funcion.getSala().getId()))
+            asientosSala.put(asiento.getId(), asiento);
+        Set<Long> usados = new HashSet<>();
+        Compra compra = new Compra();
+        compra.setUsuario(usuario);
+        compra.setMetodoPago("EFECTIVO"); // Confirmación de prueba; no realiza un cobro real.
+        compra.setEstado("PAGADA");
+        compra.setFechaCompra(LocalDateTime.now());
+        List<DetalleBoleto> boletos = new ArrayList<>();
+        double total = 0;
+        for (Long id : solicitud.asientoIds()) {
+            if (id == null || !usados.add(id) || !asientosSala.containsKey(id))
+                throw new IllegalArgumentException("El asiento no pertenece a la sala o está repetido");
+            if (detalleBoletoRepository.existsByFuncionIdAndAsientoId(funcion.getId(), id))
+                throw new IllegalArgumentException("Uno de los asientos ya está ocupado");
+            DetalleBoleto detalle = new DetalleBoleto();
+            detalle.setCompra(compra);
+            detalle.setFuncion(funcion);
+            detalle.setAsiento(asientosSala.get(id));
+            detalle.setPrecio(funcion.getPrecioBase());
+            boletos.add(detalle);
+            total += funcion.getPrecioBase();
+        }
+        compra.setDetallesBoleto(boletos);
+        List<DetalleSnack> snacks = new ArrayList<>();
+        for (SnackPedido pedido : solicitud.snacks() == null ? List.<SnackPedido>of() : solicitud.snacks()) {
+            if (pedido == null || pedido.id() == null) throw new IllegalArgumentException("Producto de dulcería inválido");
+            Producto producto = CATALOGO.get(pedido.id());
+            if (producto == null || pedido.cantidad() == null || pedido.cantidad() < 1)
+                throw new IllegalArgumentException("Producto o cantidad de dulcería inválida");
+            DetalleSnack detalle = new DetalleSnack();
+            detalle.setCompra(compra);
+            detalle.setSnackId(pedido.id());
+            detalle.setNombreSnack(producto.nombre());
+            detalle.setPrecioUnitario(producto.precio());
+            detalle.setCantidad(pedido.cantidad());
+            detalle.setSubtotal(producto.precio() * pedido.cantidad());
+            snacks.add(detalle);
+            total += detalle.getSubtotal();
+        }
+        compra.setDetallesSnack(snacks);
+        compra.setTotal(total);
+        return compraRepository.saveAndFlush(compra);
+    }
 
     public List<Compra> obtenerTodo() {
         return compraRepository.findAll();

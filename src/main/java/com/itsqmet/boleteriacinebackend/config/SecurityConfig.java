@@ -29,15 +29,29 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/registro").permitAll()
-                        .requestMatchers("/api/auth/perfil", "/api/auth/logout").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/funciones/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/salas/**").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/login",
+                                "/api/auth/registro"
+                        ).permitAll()
+                        .requestMatchers(
+                                "/api/auth/perfil",
+                                "/api/auth/logout"
+                        ).authenticated()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/funciones/**",
+                                "/api/salas/**"
+                        ).hasAnyRole("ADMIN", "CLIENTE")
                         .requestMatchers("/api/funciones/**").hasRole("ADMIN")
                         .requestMatchers("/api/salas/**").hasRole("ADMIN")
                         .requestMatchers("/api/asientos/**").hasRole("ADMIN")
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers("/api/compras/**").hasAnyRole("ADMIN", "CLIENTE")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/compras/registrar"
+                        ).hasAnyRole("ADMIN", "CLIENTE")
+                        .requestMatchers("/api/compras/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -49,6 +63,13 @@ public class SecurityConfig {
                             response.setStatus(401);
                             response.getWriter().write(
                                     "{\"error\": \"No autenticado. Debes hacer login primero.\"}"
+                            );
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(403);
+                            response.getWriter().write(
+                                    "{\"error\": \"No tienes permiso para realizar esta acción.\"}"
                             );
                         })
                 );
