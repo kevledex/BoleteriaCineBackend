@@ -6,6 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,97 +22,159 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private UsuarioService usuarioService;
+  @Autowired
+  private UsuarioService usuarioService;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+  @Autowired
+  private AuthenticationManager authenticationManager;
 
-    @PostMapping("/registro")
-    public ResponseEntity<?> registrar(@Valid @RequestBody Usuario usuario, BindingResult result) {
-        if (result.hasErrors()) {
-            Map<String, String> errores = new HashMap<>();
-            result.getFieldErrors().forEach(e -> errores.put(e.getField(), e.getDefaultMessage()));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errores);
-        }
-
-        return usuarioService.registrar(usuario)
-                .map(error -> ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", error)))
-                .orElse(ResponseEntity.status(HttpStatus.CREATED)
-                        .body(Map.of("mensaje", "Usuario registrado correctamente")));
+  @PostMapping("/registro")
+  public ResponseEntity<?> registrar(
+    @Valid @RequestBody Usuario usuario,
+    BindingResult result
+  ) {
+    if (result.hasErrors()) {
+      Map<String, String> errores = new HashMap<>();
+      result
+        .getFieldErrors()
+        .forEach(e -> errores.put(e.getField(), e.getDefaultMessage()));
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errores);
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestBody Map<String, String> credenciales,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+    return usuarioService
+      .registrar(usuario)
+      .map(error ->
+        ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", error))
+      )
+      .orElse(
+        ResponseEntity.status(HttpStatus.CREATED).body(
+          Map.of("mensaje", "Usuario registrado correctamente")
+        )
+      );
+  }
 
-        String email = credenciales.get("email");
-        String password = credenciales.get("password");
+  @PostMapping("/login")
+  public ResponseEntity<?> login(
+    @RequestBody Map<String, String> credenciales,
+    HttpServletRequest request,
+    HttpServletResponse response
+  ) {
+    String email = credenciales.get("email");
+    String password = credenciales.get("password");
 
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, password)
-            );
+    try {
+      Authentication authentication = authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(email, password)
+      );
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+      SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            HttpSessionSecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
-            contextRepository.saveContext(SecurityContextHolder.getContext(), request, response);
-            HttpSession session = request.getSession(false);
-            String sessionId = (session != null) ? session.getId() : "No session";
+      HttpSessionSecurityContextRepository contextRepository =
+        new HttpSessionSecurityContextRepository();
+      contextRepository.saveContext(
+        SecurityContextHolder.getContext(),
+        request,
+        response
+      );
+      List<String> roles = authentication
+        .getAuthorities()
+        .stream()
+        .map(GrantedAuthority::getAuthority)
+        .toList();
 
-            List<String> roles = authentication.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .toList();
+      Usuario usuario = usuarioService
+        .obtenerPorEmail(email)
+        .orElseThrow(() ->
+          new IllegalStateException("El usuario autenticado no existe")
+        );
 
-            return ResponseEntity.ok(Map.of(
-                    "mensaje", "Login exitoso",
-                    "usuario", email,
-                    "roles", roles,
-                    "sessionId", sessionId
-            ));
+      return ResponseEntity.ok(
+        new LoginRespuesta(
+          "Login exitoso",
+          usuario.getEmail(),
+          usuario.getId(),
+          usuario.getNombre(),
+          usuario.getEmail(),
+          usuario.getTelefono(),
+          usuario.getRol(),
+          roles
+        )
+      );
+    } catch (AuthenticationException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+        Map.of("error", "Email o contraseña incorrectos")
+      );
+    }
+  }
 
-        } catch (AuthenticationException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Email o contraseña incorrectos"));
-        }
+  @PostMapping("/logout")
+  public ResponseEntity<?> logout(HttpServletRequest request) {
+    HttpSession session = request.getSession(false);
+
+    if (session != null) {
+      session.invalidate();
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
+    SecurityContextHolder.clearContext();
 
-        if (session != null) {
-            session.invalidate();
-        }
+    return ResponseEntity.ok(Map.of("mensaje", "Sesión cerrada correctamente"));
+  }
 
-        SecurityContextHolder.clearContext();
+  @GetMapping("/perfil")
+  public ResponseEntity<?> perfil() {
+    Authentication authentication =
+      SecurityContextHolder.getContext().getAuthentication();
 
-        return ResponseEntity.ok(Map.of("mensaje", "Sesión cerrada correctamente"));
-    }
+    List<String> roles = authentication
+      .getAuthorities()
+      .stream()
+      .map(GrantedAuthority::getAuthority)
+      .toList();
 
-    @GetMapping("/perfil")
-    public ResponseEntity<?> perfil() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    return usuarioService
+      .obtenerPorEmail(authentication.getName())
+      .map(usuario ->
+        ResponseEntity.ok(
+          (Object) new PerfilRespuesta(
+            usuario.getId(),
+            usuario.getNombre(),
+            usuario.getEmail(),
+            usuario.getTelefono(),
+            usuario.getRol(),
+            usuario.getEmail(),
+            roles
+          )
+        )
+      )
+      .orElse(
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+          Map.of("error", "Usuario no encontrado")
+        )
+      );
+  }
 
-        List<String> roles = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
+  private record LoginRespuesta(
+    String mensaje,
+    String usuario,
+    Long id,
+    String nombre,
+    String email,
+    String telefono,
+    String rol,
+    List<String> roles
+  ) {}
 
-        return ResponseEntity.ok(Map.of(
-                "mensaje", "Acceso autorizado",
-                "usuarioActual", authentication.getName(),
-                "roles", roles
-        ));
-    }
+  private record PerfilRespuesta(
+    Long id,
+    String nombre,
+    String email,
+    String telefono,
+    String rol,
+    String usuarioActual,
+    List<String> roles
+  ) {}
 }
