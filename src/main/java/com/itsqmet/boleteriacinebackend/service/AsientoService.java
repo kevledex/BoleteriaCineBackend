@@ -22,7 +22,6 @@ public class AsientoService {
         return asientoRepository.findById(id);
     }
 
-    // codigo es fila+numero, ej. "A1", tal como lo maneja el frontend.
     public Optional<Asiento> buscarPorSalaYCodigo(Long salaId, String codigo) {
         return asientoRepository.findBySalaId(salaId).stream()
                 .filter(asiento -> (asiento.getFila() + asiento.getNumero()).equals(codigo))

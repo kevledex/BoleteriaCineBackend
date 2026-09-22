@@ -37,7 +37,6 @@ public class FuncionController {
     @Autowired
     private AsientoBloqueoService asientoBloqueoService;
 
-    // Forma exacta que espera AsientosService del frontend: { id, estado, precio }[]
     private record AsientoDisponibilidad(String id, Long asientoId, String estado, Double precio, String clienteId) {
     }
 
@@ -63,7 +62,6 @@ public class FuncionController {
                         .body(Map.of("error", "Función con id " + id + " no encontrada")));
     }
 
-    // GET /api/funciones/{id}/asientos -> usado por AsientosService.obtenerMapaAsientos en el frontend
     @GetMapping("/{id}/asientos")
     public ResponseEntity<?> obtenerMapaAsientos(@PathVariable Long id) {
         return funcionService.buscarPorId(id)

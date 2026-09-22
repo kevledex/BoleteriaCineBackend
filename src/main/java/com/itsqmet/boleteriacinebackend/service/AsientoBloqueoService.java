@@ -11,9 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-// Bloqueo temporal en memoria de asientos "RESERVADO" mientras un cliente los tiene
-// en su selección. No persiste en base de datos: se libera al vencer, al desconectarse
-// el cliente o al confirmarse la compra (ver CompraService).
 @Service
 public class AsientoBloqueoService {
 
@@ -64,8 +61,6 @@ public class AsientoBloqueoService {
         return actual == null ? null : actual.clienteId();
     }
 
-    // Usado por FuncionController para que el mapa inicial (REST) ya muestre los
-    // asientos que otros clientes tienen reservados en este momento, no solo LIBRE/OCUPADO.
     public Map<String, String> obtenerReservados(Long funcionId) {
         Map<String, Bloqueo> bloqueos = bloqueosPorFuncion.get(funcionId);
         if (bloqueos == null) return Map.of();

@@ -55,7 +55,6 @@ public class FuncionService {
         return Optional.of(funcionRepository.save(funcion));
     }
 
-    // El bloqueo de la fila de sala serializa las altas/ediciones concurrentes de esa sala.
     private void validar(Funcion nueva, Long idActual) {
         if (nueva.getSala() == null || nueva.getSala().getId() == null)
             throw new IllegalArgumentException("Selecciona una sala existente");
@@ -73,7 +72,6 @@ public class FuncionService {
         for (Funcion otra : funcionRepository.findBySalaId(sala.getId())) {
             if (otra.getId().equals(idActual) || !otra.getFecha().equals(nueva.getFecha())) continue;
             LocalDateTime otroInicio = LocalDateTime.of(otra.getFecha(), otra.getHora());
-            // Compatibilidad con funciones antiguas que aún no tengan duración guardada.
             LocalDateTime otroFin = otroInicio.plusMinutes((otra.getDuracionMinutos() == null ? 120 : otra.getDuracionMinutos()) + 15L);
             if (inicio.isBefore(otroFin) && otroInicio.isBefore(fin))
                 throw new IllegalArgumentException("La sala ya tiene una función en ese horario (incluye 15 minutos de limpieza)");

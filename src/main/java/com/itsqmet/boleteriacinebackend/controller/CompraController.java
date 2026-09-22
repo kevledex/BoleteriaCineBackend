@@ -73,7 +73,6 @@ public class CompraController {
       );
   }
 
-  // Consulta administrativa. "Mis boletos" utiliza /mias y toma el usuario de la sesión.
   @GetMapping("/usuario/{usuarioId}")
   public ResponseEntity<List<Compra>> obtenerPorUsuario(
     @PathVariable Long usuarioId

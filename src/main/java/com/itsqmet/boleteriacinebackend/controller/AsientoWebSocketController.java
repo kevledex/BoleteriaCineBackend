@@ -9,11 +9,6 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
-// Recibe las acciones de selección/liberación de asientos por STOMP (/app/asiento/seleccionar)
-// y retransmite el estado autoritativo a todos los suscriptores de /topic/sala/{funcionId}.
-// El backend nunca emite "SELECCIONADO": eso lo decide cada cliente comparando el clienteId
-// que viaja en el mensaje contra el suyo propio (si coincide, es su selección; si no, es un
-// asiento RESERVADO por otro usuario).
 @Controller
 public class AsientoWebSocketController {
 
