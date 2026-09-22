@@ -40,6 +40,8 @@ public class SecurityConfig {
           .authenticated()
           .requestMatchers(HttpMethod.GET, "/api/funciones/**", "/api/salas/**")
           .permitAll()
+          .requestMatchers("/ws/**")
+          .permitAll()
           .requestMatchers("/api/funciones/**")
           .hasRole("ADMIN")
           .requestMatchers("/api/salas/**")

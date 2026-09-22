@@ -44,6 +44,9 @@ public class CompraService {
   @Autowired
   private AsientoRepository asientoRepository;
 
+  @Autowired
+  private AsientoBloqueoService asientoBloqueoService;
+
   public record SnackPedido(Long id, Integer cantidad) {}
 
   public record CompraSolicitud(
@@ -200,7 +203,15 @@ public class CompraService {
     compra.setDetallesSnack(snacks);
     compra.setTotal(total);
 
-    return compraRepository.saveAndFlush(compra);
+    Compra guardada = compraRepository.saveAndFlush(compra);
+
+    for (DetalleBoleto detalle : boletos) {
+      String codigo = detalle.getAsiento().getFila() + detalle.getAsiento().getNumero();
+      asientoBloqueoService.liberarPorVenta(detalle.getFuncion().getId(), codigo);
+      asientoBloqueoService.publicar(detalle.getFuncion().getId(), codigo, "OCUPADO", null);
+    }
+
+    return guardada;
   }
 
   @Transactional(readOnly = true)

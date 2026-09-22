@@ -2,6 +2,7 @@ package com.itsqmet.boleteriacinebackend.controller;
 
 import com.itsqmet.boleteriacinebackend.model.Asiento;
 import com.itsqmet.boleteriacinebackend.model.Funcion;
+import com.itsqmet.boleteriacinebackend.service.AsientoBloqueoService;
 import com.itsqmet.boleteriacinebackend.service.AsientoService;
 import com.itsqmet.boleteriacinebackend.service.DetalleBoletoService;
 import com.itsqmet.boleteriacinebackend.service.FuncionService;
@@ -33,8 +34,11 @@ public class FuncionController {
     @Autowired
     private DetalleBoletoService detalleBoletoService;
 
+    @Autowired
+    private AsientoBloqueoService asientoBloqueoService;
+
     // Forma exacta que espera AsientosService del frontend: { id, estado, precio }[]
-    private record AsientoDisponibilidad(String id, Long asientoId, String estado, Double precio) {
+    private record AsientoDisponibilidad(String id, Long asientoId, String estado, Double precio, String clienteId) {
     }
 
     @GetMapping
@@ -66,13 +70,22 @@ public class FuncionController {
                 .map(funcion -> {
                     List<Asiento> asientosSala = asientoService.obtenerPorSala(funcion.getSala().getId());
                     List<Long> ocupados = detalleBoletoService.obtenerAsientosOcupados(id);
+                    java.util.Map<String, String> reservados = asientoBloqueoService.obtenerReservados(id);
 
                     List<AsientoDisponibilidad> mapa = asientosSala.stream()
-                            .map(asiento -> new AsientoDisponibilidad(
-                                    asiento.getFila() + asiento.getNumero(),
-                                    asiento.getId(),
-                                    ocupados.contains(asiento.getId()) ? "OCUPADO" : "LIBRE",
-                                    funcion.getPrecioBase()))
+                            .map(asiento -> {
+                                String codigo = asiento.getFila() + asiento.getNumero();
+                                String estado = ocupados.contains(asiento.getId())
+                                        ? "OCUPADO"
+                                        : reservados.containsKey(codigo) ? "RESERVADO" : "LIBRE";
+
+                                return new AsientoDisponibilidad(
+                                        codigo,
+                                        asiento.getId(),
+                                        estado,
+                                        funcion.getPrecioBase(),
+                                        reservados.get(codigo));
+                            })
                             .collect(Collectors.toList());
 
                     return ResponseEntity.ok((Object) mapa);
