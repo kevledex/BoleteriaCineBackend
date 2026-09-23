@@ -36,7 +36,6 @@ public class Usuario {
     @Size(max = 10, message = "El teléfono no puede superar los 10 caracteres")
     private String telefono;
 
-    @NotBlank(message = "El rol no puede estar vacío")
     @Pattern(regexp = "ADMIN|CLIENTE", message = "El rol debe ser ADMIN o CLIENTE")
     @Column(nullable = false)
     private String rol;

@@ -4,8 +4,10 @@ import com.itsqmet.boleteriacinebackend.model.Asiento;
 import com.itsqmet.boleteriacinebackend.model.Sala;
 import com.itsqmet.boleteriacinebackend.repository.AsientoRepository;
 import com.itsqmet.boleteriacinebackend.repository.SalaRepository;
+import com.itsqmet.boleteriacinebackend.repository.FuncionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +22,9 @@ public class SalaService {
     @Autowired
     private AsientoRepository asientoRepository;
 
+    @Autowired
+    private FuncionRepository funcionRepository;
+
     public List<Sala> obtenerTodo() {
         return salaRepository.findAll();
     }
@@ -28,7 +33,9 @@ public class SalaService {
         return salaRepository.findById(id);
     }
 
+    @Transactional
     public Sala crearSala(Sala sala) {
+        if (sala.getFilas() > 26) throw new IllegalArgumentException("Máximo 26 filas por sala");
         Sala salaGuardada = salaRepository.save(sala);
         generarAsientos(salaGuardada);
         return salaGuardada;
@@ -37,8 +44,8 @@ public class SalaService {
     public Optional<Sala> actualizar(Long id, Sala salaActualizada) {
         return salaRepository.findById(id).map(sala -> {
             sala.setNombre(salaActualizada.getNombre());
-            sala.setFilas(salaActualizada.getFilas());
-            sala.setColumnas(salaActualizada.getColumnas());
+            if (!sala.getFilas().equals(salaActualizada.getFilas()) || !sala.getColumnas().equals(salaActualizada.getColumnas()))
+                throw new IllegalArgumentException("Las dimensiones no pueden cambiar después de crear los asientos");
             sala.setTipoSala(salaActualizada.getTipoSala());
             return salaRepository.save(sala);
         });
@@ -46,6 +53,8 @@ public class SalaService {
 
     public boolean eliminar(Long id) {
         if (salaRepository.existsById(id)) {
+            if (!funcionRepository.findBySalaId(id).isEmpty())
+                throw new IllegalArgumentException("Elimina primero las funciones de esta sala");
             salaRepository.deleteById(id);
             return true;
         }

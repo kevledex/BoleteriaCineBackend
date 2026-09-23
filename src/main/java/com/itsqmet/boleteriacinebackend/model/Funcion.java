@@ -54,6 +54,9 @@ public class Funcion {
     @Column(nullable = false)
     private Double precioBase;
 
+    @Min(value = 1, message = "La duración debe ser mayor a 0")
+    private Integer duracionMinutos;
+
     @OneToMany(mappedBy = "funcion")
     @JsonIgnoreProperties("funcion")
     private List<DetalleBoleto> detallesBoleto;

@@ -22,12 +22,14 @@ public class Sala {
 
     @NotNull(message = "El número de filas no puede estar vacío")
     @Min(value = 1, message = "La sala debe tener al menos 1 fila")
+    @Max(value = 26, message = "La sala admite como máximo 26 filas")
     @Column(nullable = false)
     private Integer filas;
 
     @NotNull(message = "El número de columnas no puede estar vacío")
     @Min(value = 1, message = "La sala debe tener al menos 1 columna")
     @Column(nullable = false)
+    @Max(value = 50, message = "La sala admite como máximo 50 asientos por fila")
     private Integer columnas;
 
     @NotBlank(message = "El tipo de sala no puede estar vacío")

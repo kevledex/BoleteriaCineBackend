@@ -22,6 +22,12 @@ public class AsientoService {
         return asientoRepository.findById(id);
     }
 
+    public Optional<Asiento> buscarPorSalaYCodigo(Long salaId, String codigo) {
+        return asientoRepository.findBySalaId(salaId).stream()
+                .filter(asiento -> (asiento.getFila() + asiento.getNumero()).equals(codigo))
+                .findFirst();
+    }
+
     public Optional<Asiento> actualizar(Long id, Asiento asientoActualizado) {
         return asientoRepository.findById(id).map(asiento -> {
             asiento.setFila(asientoActualizado.getFila());
