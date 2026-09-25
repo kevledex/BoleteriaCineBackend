@@ -1,5 +1,6 @@
 package com.itsqmet.boleteriacinebackend.config;
 
+import com.itsqmet.boleteriacinebackend.service.UserDetailServiceImpl;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,12 +10,30 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.RememberMeServices;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
+
+  private static final String REMEMBER_ME_KEY = "metropoli-cine-remember-me";
+  private static final int REMEMBER_ME_SEGUNDOS = 14 * 24 * 60 * 60;
+
+  @Bean
+  public RememberMeServices rememberMeServices(
+    UserDetailServiceImpl userDetailService
+  ) {
+    TokenBasedRememberMeServices services = new TokenBasedRememberMeServices(
+      REMEMBER_ME_KEY,
+      userDetailService
+    );
+    services.setAlwaysRemember(true);
+    services.setTokenValiditySeconds(REMEMBER_ME_SEGUNDOS);
+    return services;
+  }
 
   @Bean
   public AuthenticationManager authenticationManager(
@@ -24,7 +43,10 @@ public class SecurityConfig {
   }
 
   @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain filterChain(
+    HttpSecurity http,
+    RememberMeServices rememberMeServices
+  ) throws Exception {
     http
       .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .csrf(AbstractHttpConfigurer::disable)
@@ -57,7 +79,10 @@ public class SecurityConfig {
           .anyRequest()
           .authenticated()
       )
-      .sessionManagement(session -> session.maximumSessions(1))
+      .rememberMe(remember ->
+        remember.rememberMeServices(rememberMeServices).key(REMEMBER_ME_KEY)
+      )
+      .sessionManagement(session -> session.maximumSessions(3))
       .exceptionHandling(ex ->
         ex
           .authenticationEntryPoint((request, response, authException) -> {
