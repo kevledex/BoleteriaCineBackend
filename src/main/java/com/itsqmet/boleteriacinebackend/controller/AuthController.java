@@ -18,6 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.RememberMeServices;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,9 @@ public class AuthController {
 
   @Autowired
   private AuthenticationManager authenticationManager;
+
+  @Autowired
+  private RememberMeServices rememberMeServices;
 
   @PostMapping("/registro")
   public ResponseEntity<?> registrar(
@@ -80,6 +85,8 @@ public class AuthController {
         request,
         response
       );
+      rememberMeServices.loginSuccess(request, response, authentication);
+
       List<String> roles = authentication
         .getAuthorities()
         .stream()
@@ -112,7 +119,18 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<?> logout(HttpServletRequest request) {
+  public ResponseEntity<?> logout(
+    HttpServletRequest request,
+    HttpServletResponse response
+  ) {
+    if (rememberMeServices instanceof LogoutHandler handler) {
+      handler.logout(
+        request,
+        response,
+        SecurityContextHolder.getContext().getAuthentication()
+      );
+    }
+
     HttpSession session = request.getSession(false);
 
     if (session != null) {
